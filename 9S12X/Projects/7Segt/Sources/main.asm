@@ -36,9 +36,18 @@ Entry:
 
 Main:
            JSR SevSeg_Init
-           LDAA #$0C
-           LDAB #$01
+           LDAA #$0D
+           LDAB #$02
            JSR SevSeg_Char
+           LDAA #$03
+           LDAB #$05
+           JSR SevSeg_Char
+           LDAA #$01
+           LDAA #$03
+           JSR SevSeg_Char
+           LDAA #$01
+           LDAB #$03
+           JSR SevSeg_BlChar
            BRA *
 
 ;********************************************************************

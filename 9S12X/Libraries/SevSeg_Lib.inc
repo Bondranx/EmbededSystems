@@ -147,7 +147,6 @@ SevSeg_BlChar:	PSHA
 SevSeg_BlAll:
 		PSHA 
  		PSHB
-	   	JSR SevSeg_Init
            	LDAA #%10000000
            	LDAB #00
 nextBl:    	JSR SevSeg_BlChar
@@ -157,4 +156,18 @@ nextBl:    	JSR SevSeg_BlChar
            	PULB
 		PULa
 		RTS
-			
+
+;****************************************************************** 
+;* SevSeg_Two 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts two hex nibbles in Accumulator A and 		  * 
+;* writes them to two locations starting as specified in Acc B    * 
+;* if Acc B points to digit 7, the second char should be digit 0  * 
+;* 								  * 
+;* Relies on SevSeg_Char 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Two:	
