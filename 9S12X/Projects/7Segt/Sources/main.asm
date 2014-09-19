@@ -34,22 +34,40 @@
 Entry:
 		LDS			#RAMEnd+1		;initialize the stack pointer
 
-Main:
-           JSR SevSeg_Init
-           LDAA #$0D
-           LDAB #$02
-           JSR SevSeg_Char
-           LDAA #$03
-           LDAB #$05
-           JSR SevSeg_Char
-           LDAA #$01
-           LDAA #$03
-           JSR SevSeg_Char
-           LDAA #$01
-           LDAB #$03
-           JSR SevSeg_BlChar
-           BRA *
+Main:       JSR SevSeg_Init
 
+Loop:       LDAA PT1AD1
+            BCLR PT1AD1,%10000000 
+            BCLR PT1AD1,%00100000
+            BCLR PT1AD1,%01000000
+            BRSET PT1AD1,%00010000,UP            
+LFT:        BRSET PT1AD1,%00001000,LEFT
+RGHT:       BRSET PT1AD1,%00000010,RIGHT
+MIDD:       BRSET PT1AD1,%00000001,MID
+            BRA Loop
+            
+UP:         
+                                   
+LEFT:       BSET PT1AD1,%10000000
+                       
+            BRA RGHT
+RIGHT:      BSET PT1AD1,%00100000
+            
+            BRA MIDD
+MID:        BSET PT1AD1,%01000000
+            
+            BRA Loop
+DOWN:       BSET PT1AD1,%11100000     
+            BRA Loop
+            
+           
+           ;LDX #SevSeg8Const
+           LDAA #%10101100
+           LDAB #$00
+           JSR SevSeg_Cust
+           BRA *
+           
+           
 ;********************************************************************
 ;*		Subroutines												                          	*
 ;********************************************************************
@@ -64,6 +82,7 @@ Main:
 ;*		Constants													                            *
 ;********************************************************************
 		ORG			ROM_C000Start	;second block of ROM
+		SevSeg8Const: dc.b  $D,$E,$A,$D,$B,$E,$E,$F
 
 
 ;********************************************************************

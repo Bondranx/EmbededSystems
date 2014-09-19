@@ -16315,21 +16315,41 @@ Entry:
 		LDS			#RAMEnd+1		;initialize the stack pointer
 
 Main:
-           JSR SevSeg_Init
-           LDAA #$0D
-           LDAB #$02
-           JSR SevSeg_Char
-           LDAA #$03
-           LDAB #$05
-           JSR SevSeg_Char
-           LDAA #$01
-           LDAA #$03
-           JSR SevSeg_Char
-           LDAA #$01
-           LDAB #$03
-           JSR SevSeg_BlChar
-           BRA *
 
+Loop:       LDAA PT1AD1
+            BCLR PT1AD1,%10000000 
+            BCLR PT1AD1,%00100000
+            BCLR PT1AD1,%01000000
+            BRSET PT1AD1,%00010000,UP            
+LFT:        BRSET PT1AD1,%00001000,LEFT
+RGHT:       BRSET PT1AD1,%00000010,RIGHT
+MIDD:       BRSET PT1AD1,%00000001,MID
+            BRA Loop
+            
+UP:         
+Loop2:      BSET PT1AD1,%11100000
+            BRSET PT1AD1,%00000100, DOWN
+            BRA Loop2
+                                   
+LEFT:       BSET PT1AD1,%10000000
+            ;JSR Timer2s           
+            BRA RGHT
+RIGHT:      BSET PT1AD1,%00100000
+            ;JSR Timer2s
+            BRA MIDD
+MID:        BSET PT1AD1,%01000000
+            ;JSR Timer2s
+            BRA Loop
+DOWN:       BSET PT1AD1,%11100000     
+            BRA Loop
+           JSR SevSeg_Init
+           ;LDX #SevSeg8Const
+           LDAA #%10101100
+           LDAB #$00
+           JSR SevSeg_Cust
+           BRA *
+           
+           
 ;********************************************************************
 ;*		Subroutines												                          	*
 ;********************************************************************
@@ -16344,6 +16364,7 @@ Main:
 ;*		Constants													                            *
 ;********************************************************************
 		ORG			ROM_C000Start	;second block of ROM
+		SevSeg8Const: dc.b  $D,$E,$A,$D,$B,$E,$E,$F
 
 
 ;********************************************************************
@@ -16519,7 +16540,151 @@ nextBl:    	JSR SevSeg_BlChar
            	PULB
 		PULa
 		RTS
-			
+
+;****************************************************************** 
+;* SevSeg_Two 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts two hex nibbles in Accumulator A and 		  * 
+;* writes them to two locations starting as specified in Acc B    * 
+;* if Acc B points to digit 7, the second char should be digit 0  * 
+;* 								  * 
+;* Relies on SevSeg_Char 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Two:	PSHA 
+ 		PSHB
+		PSHA
+		LSRA
+		LSRA
+		LSRA
+		LSRA
+
+		JSR SevSeg_Char	
+		
+		INCB
+		PULA
+		
+		JSR SevSeg_Char
+		PULA
+		PULB
+
+		RTS
+
+;****************************************************************** 
+;* SevSeg_Top4 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts four hex nibbles in Accumulator D and 		  * 
+;* writes them to locations 0 to 3 (upper red LED bar) 		  * 
+;* 								  * 
+;* Relies on SevSeg_Two, SevSeg_Char 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Top4:
+		PSHD
+		PSHD		
+		LDAB #$00
+		JSR SevSeg_Two
+		PULD
+		TBA
+		LDAB #$02	
+		JSR SevSeg_Two
+		PULD
+		RTS
+
+;****************************************************************** 
+;* SevSeg_Low4 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts four hex nibbles in Accumulator D and 		  * 
+;* writes them to locations 4 to 7 (lower yellow LED bar) 	  * 
+;* Relies on SevSeg_Two, SevSeg_Char 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Low4:
+		PSHD
+		PSHD		
+		LDAB #$04
+		JSR SevSeg_Two
+		PULD
+		TBA
+		LDAB #$06	
+		JSR SevSeg_Two
+		
+		PULD
+
+		RTS
+		
+
+;****************************************************************** 
+;* SevSeg_Eight 						  * 
+;* 								  * 
+;*Regs affected: none 						  * 
+;* 								  * 
+;*Receives a pointer in the X-Register to an 8-byte memory array  * 
+;*containing the appropriate 8 hex nibbles as the lower 4 bits    * 
+;*of each byte, and displays them in order.          		  * 
+;* 								  * 
+;* The memory location must be filled in the Main routine. 	  * 
+;* 								  * 
+;* Relies on SevSeg_Char 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Eight:
+		PSHD
+
+		LDAB #$00
+		
+SevSegLoop:	LDAA B,X
+		JSR SevSeg_Char
+		INCB
+		CMPB #08
+		BNE SevSegLoop
+		
+		PULD
+		
+		RTS	
+		
+		
+;****************************************************************** 
+;* SevSeg_Cust 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts custom character specs in Accumulator A and a   	  * 
+;* location (0 to 7) in Accumulator B and places the character.   * 
+;* 								  * 
+;* The routine expects the user to know the LED segments. 	  * 
+;* 								  * 
+;****************************************************************** 
+		
+SevSeg_Cust:
+		PSHA 
+ 		PSHB 
+
+ 		ANDB 	#%00000111 		;clean up address 
+ 		ORAB 	#%01111000 		;add control: hex, decode, no SD, Bnk A   
+
+ 		STAB 	PORTB 			;instruction ready 
+ 		MOVB 	#%00000010,PORTA 	;/mode high, write low 
+ 		MOVB 	#%00000011,PORTA 	;/write back to high 
+
+ 		STAA 	PORTB 			;data ready 
+ 		MOVB 	#%00000000,PORTA 	;mode and /write low 
+ 		MOVB 	#%00000011,PORTA 	;mode and /write back to high 
+
+ 		PULB 
+ 		PULA 
+ 		RTS 
+		
 
 
 ;********************************************************************
