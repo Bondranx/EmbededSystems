@@ -25,6 +25,7 @@
 ;*		Variables													*
 ;********************************************************************
 		ORG			RAMStart		;Address $2000
+		Var1: ds.b 1
 
 
 ;********************************************************************
@@ -35,25 +36,40 @@ Entry:
 		LDS			#RAMEnd+1		;initialize the stack pointer
 
 Main:
-        LDAA #$00
-        LDAB #$56
-        JSR Hex2BCD 
+        LDAA #$56
+        LDAB #$0
+        STAA Var1
+         
         
         JSR SevSeg_Init
-        JSR SevSeg_Top4
-        EXG A,B
-Loop:   LDAB #$00
-        JSR SevSeg_Top4
-        ADDA #$01
-        DAA
-        CMPA #$99
-        BLO Loop
-        LDAB #$01
+        JSR SevSeg_BlAll
+Loop:   LDAA Var1
+        INCA
+        CMPA #99
+        BLS DontRoll
+        CLRA
+DontRoll:  STAA Var1
+ 
+        LDAB #5
+        MUL
+        JSR Hex2BCD
+        JSR SevSeg_Low4
+        LDAB Var1
+        CLRA
+        JSR Hex2BCD
+        EXG B,A
+        LDAB #2
+        JSR SevSeg_Two
+        JSR Timer2s
         BRA Loop
-        bra * 
 
 
-
+Timer2s:
+           LDAB   #89
+Timloop:   LDY    #9925
+           DBNE   Y,*
+           DBNE   B,Timloop
+           RTS              
 
 ;********************************************************************
 ;*		Subroutines													*

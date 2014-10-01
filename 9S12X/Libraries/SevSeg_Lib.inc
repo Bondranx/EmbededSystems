@@ -171,7 +171,9 @@ nextBl:    	JSR SevSeg_BlChar
 ;* 								  * 
 ;****************************************************************** 
 
-SevSeg_Two:	PSHA 
+SevSeg_Two:	
+
+    PSHA 
  		PSHB
 		PSHA
 		LSRA

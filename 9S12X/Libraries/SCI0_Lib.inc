@@ -39,9 +39,18 @@ SCI0_RxEnd: 	RTS
 ;Relies on SCI0_TxByte Subroutine					*
 ;************************************************************************
 SCI0_TxStr:
-		LDAA	0,V
+		PSHA
+		PSHX
+next_tchar:
+		LDAA	0,x
+		BEQ	null_done	;on null character exit
+		JSR	SCI0_TxByte
+		INX	
+		bra	next_txchar
 		
-		BEQ 	DoneTx	
-
+null_done	PULX
+		PULA
+		RTS	
+		
 
 		

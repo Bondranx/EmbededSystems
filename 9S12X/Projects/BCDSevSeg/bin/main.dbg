@@ -16305,6 +16305,7 @@ mNVFSEC_KEYEN:                           equ        mNVFSEC_KEYEN1
 ;*		Variables													*
 ;********************************************************************
 		ORG			RAMStart		;Address $2000
+		Var1: ds.b 1
 
 
 ;********************************************************************
@@ -16315,25 +16316,40 @@ Entry:
 		LDS			#RAMEnd+1		;initialize the stack pointer
 
 Main:
-        LDAA #$00
-        LDAB #$56
-        JSR Hex2BCD 
+        LDAA #$56
+        LDAB #$0
+        STAA Var1
+         
         
         JSR SevSeg_Init
-        JSR SevSeg_Top4
-        EXG A,B
-Loop:   LDAB #$00
-        JSR SevSeg_Top4
-        ADDA #$01
-        DAA
-        CMPA #$99
-        BLO Loop
-        LDAB #$01
+        JSR SevSeg_BlAll
+Loop:   LDAA Var1
+        INCA
+        CMPA #99
+        BLS DontRoll
+        CLRA
+DontRoll:  STAA Var1
+ 
+        LDAB #5
+        MUL
+        JSR Hex2BCD
+        JSR SevSeg_Low4
+        LDAB Var1
+        CLRA
+        JSR Hex2BCD
+        EXG B,A
+        LDAB #2
+        JSR SevSeg_Two
+        JSR Timer2s
         BRA Loop
-        bra * 
 
 
-
+Timer2s:
+           LDAB   #89
+Timloop:   LDY    #9925
+           DBNE   Y,*
+           DBNE   B,Timloop
+           RTS              
 
 ;********************************************************************
 ;*		Subroutines													*
@@ -16423,13 +16439,79 @@ Hex2BCD:
           PSHB
           XGDX 
           ORAB  0,SP   ;nibble0 with nibble1 in B 
-          PULA          ;skip two eight-bit stackings 
+          PULA         ;skip two eight-bit stackings 
           PULA 
           PULA         ;get nibble2 
           ORAA -2,SP   ;combine with nibble3
           PULX
           RTS
           
+;************************************
+;*A single hex digit arrives in A   *
+;*converted to ASCII returned in A  *
+;*No other registers changed        *
+;************************************
+
+Hex2Asc1:
+		CMPA	#$0F
+		BHI	LeaveHex2Asc1
+		CMPA	#$0A
+		BLO 	NotAlpha
+		ADDA	#%00110111
+		BRA	LeaveHex2Asc1
+NotAlpha:
+		CMPA	#9
+		BHI	LeaveHex2Asc1
+		ORAA	#%00110000
+LeaveHex2Asc1:
+		RTS
+;***********
+;*hex byte arrives in A
+;*Two ascii characters are returned in D
+;*
+;************
+Hex2Asc2:
+		PSHA
+		ANDA	#%00001111
+		JSR	Hex2Asc1
+		TFR	A,B
+		PULA	
+		LSRA
+		LSRA
+		LSRA
+		LSRA
+		JSR	Hex2Asc1
+		RTS
+
+;*******************************************
+;* 
+;*
+;*
+;*
+;*******************************************
+ToLower:
+		CMPA	#'A'
+		BLO	ExitToLower
+		CMPA	#'Z'
+		BHI	ExitToLower		
+		ORAA	#%00100000
+ExitToLower:	
+		RTS	
+
+;**********
+;*
+;*
+;*
+;**********
+
+ToUpper:	
+		CMPA	#'a'
+		BLO	ExitToUpper
+		CMPA	#'z'
+		BHI	ExitToUpper		
+		ANDA	#%11011111
+ExitToUpper:	
+		RTS
 		INCLUDE 'SevSeg_Lib.inc'
 ;****************************************************************** 
 ;* Title: Seven Segment Controller Library 			  * 
@@ -16604,7 +16686,9 @@ nextBl:    	JSR SevSeg_BlChar
 ;* 								  * 
 ;****************************************************************** 
 
-SevSeg_Two:	PSHA 
+SevSeg_Two:	
+
+    PSHA 
  		PSHB
 		PSHA
 		LSRA
