@@ -39,11 +39,14 @@ Main:
         LDAA #$56
         LDAB #$0
         STAA Var1
+        MOVB  #%00011111,ATD1DIEN1
          
         
         JSR SevSeg_Init
         JSR SevSeg_BlAll
-Loop:   LDAA Var1
+Loop1:   
+        BRCLR PT1AD1,%00010000, Loop1
+        LDAA Var1
         INCA
         CMPA #99
         BLS DontRoll
@@ -61,7 +64,7 @@ DontRoll:  STAA Var1
         LDAB #2
         JSR SevSeg_Two
         JSR Timer2s
-        BRA Loop
+        BRA Loop1
 
 
 Timer2s:
