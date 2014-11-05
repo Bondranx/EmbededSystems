@@ -25,11 +25,9 @@
 ;*		Variables													*
 ;********************************************************************
 		ORG			RAMStart		;Address $2000
-		TempCond: ds.w 1
-		TempCondBCD: ds.w 1
-    FirstTwoASCII: ds.w 1
-    SecondTwoASCII: ds.w 1
-    Null: ds.b 1
+		Var1: ds.b 1
+    TempState: ds.b 1
+
 ;********************************************************************
 ;*		Code Section												*
 ;********************************************************************
@@ -38,53 +36,59 @@ Entry:
 		LDS			#RAMEnd+1		;initialize the stack pointer
 
 Main:
-       JSR    SevSeg_Init
-       JSR    LCD_Init
-       JSR    SetPT7
-       JSR    TimInit1us
-       MOVB   #0,Null
-       JSR    LCD_CursOff
-FlagLoop:       
-       BRCLR  TFLG1,%10000000,*
-       BSET   TFLG1,#%10000000
-       LDY    TC7
-       TFR    Y,D
-       SUBD   TempCond
-       STY    TempCond
-       JSR    SevSeg_Top4
-       PSHA
-       LDAA   #0
-       JSR    LCD_Addr
-       PULA
-       LDX    #FirstLine
-       JSR    LCD_String
-       
-       JSR    Hex2BCD
-       JSR    SevSeg_Low4
-       STD    TempCondBCD
-       JSR    Hex2Asc2
-       STD    FirstTwoASCII
-       LDD    TempCondBCD
-       EXG    B,A
-       JSR    Hex2Asc2
-       STD    SecondTwoASCII
-       PSHA
-       LDAA   #64
-       JSR    LCD_Addr
-       PULA
-       LDX    #FirstTwoASCII
-       JSR    LCD_String
-       PSHA
-       LDAA   #69
-       JSR    LCD_Addr
-       PULA
-       LDX    #ThirdLine
-       JSR    LCD_String
-       
-       
+           LDAA   #0
+           STAA   Var1
+           JSR    SW_LED_Init
+           JSR    SevSeg_Init
+SwitchCk:
+           JSR    Timer2s
+           JSR    GrnLEDon
+           JSR    ChkLeftSw
+           BCC    RedOff
+           JSR    RedLEDon
+           BRA    RedOn
+RedOff:    JSR    RedLEDoff
+RedOn:     JSR    Timer2s
+           JSR    GrnLEDoff
+           JSR    SwCk
+           CMPA   TempState
+           BEQ    SwitchCk
+           STAA   TempState
+           BRSET  TempState,#%00000001,Mid
+           BRSET  TempState,#%00000010,Right
+           BRCLR  TempState,#%00000001,MidSkip
+           BRCLR  TempState,#%00000010,RightSkip
+           BRA    SwitchCk
+Mid:       BRSET  PT1AD1,#%01000000,YelOff
+           JSR    YelLEDon
+           BRA    MidSkip
+Right:     PSHA
+           PSHB
+           LDAA   Var1
+           LDAB   #4
+           INCA
+           STAA   Var1
+           CMPA   #9
+           BGT    Reset
+           JSR    SevSeg_Char
+           BRA    RightSkip
+Reset:     LDAA   #0
+           STAA   Var1
+           JSR    SevSeg_Char     
+           BRA    RightSkip
+     
+YelOff:    JSR    YelLEDoff
+RightSkip: PULB
+           PULA
+MidSkip:   BRA    SwitchCk
 
-       BRA    FlagLoop
 
+Timer2s:
+           LDAB   #89
+Timloop:   LDY    #1000
+           DBNE   Y,*
+           DBNE   B,Timloop
+           RTS              
 
 ;********************************************************************
 ;*		Subroutines													*
@@ -100,10 +104,9 @@ FlagLoop:
 ;*		Constants													*
 ;********************************************************************
 		ORG			ROM_C000Start	;second block of ROM
-		FirstLine:    dc.b "Period=",0
-		ThirdLine:    dc.b "us",0
-		
-;*******************************************************************
+
+
+;********************************************************************
 ;*		Look-Up Tables												*
 ;********************************************************************
 
@@ -118,10 +121,9 @@ FlagLoop:
 ;********************************************************************
 
 		;INCLUDE "Your_Lib.inc"
-		INCLUDE LCD_Lib.inc
-	  INCLUDE Misc_Lib.inc
-	  INCLUDE SW_LED_Lib.inc
-	  INCLUDE SevSeg_Lib.inc
+		INCLUDE 'Misc_Lib.inc'
+		INCLUDE 'SevSeg_Lib.inc'
+		INCLUDE 'SW_LED_Lib.inc'
 
 
 ;********************************************************************

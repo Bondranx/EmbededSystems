@@ -21,11 +21,14 @@
 ;* 									* 
 ;************************************************************************ 
 
-;******************************************
-;*
-;*
-;*
-;******************************************
+;************************************************************************
+;*LCD_Init                                				*
+;*									*
+;*Registers affected: none						*
+;*									*
+;*Initializes the LCD display, Display on, Cursor on/increment 		*
+;*mode, cursor set to home						*
+;************************************************************************
 LCD_Init: 
  	PSHD 				;save accumulator 
  	CLR 	PTH 			;ready to initialize 
@@ -98,12 +101,14 @@ LCD_Ctrl:
 	BCLR	PORTK,%00000111
 
 	RTS
-;****************************************
-;*LCD_Char				*
-;*					*
-;*					*
-;*					*
-;****************************************
+;************************************************************************
+;*LCD_Char								*
+;*									*
+;*Registers affected: none						*
+;*									*
+;*Writes an ASCII character specified in A to the LCD display at	* 
+;*the Cursor location							*
+;************************************************************************
 
 LCD_Char
 	JSR 	LCD_Busy 		;wait until the LCD controller is free 
@@ -118,7 +123,9 @@ LCD_Char
 
 ;********************************************************
 ;*LCD_CharGen						*
+;*							*
 ;*Regs affected: none					*
+;*							*
 ;*Expects X to point to a table of eight line-by line	*
 ;*custom character generation bytes, to be placed in 	*
 ;*ASCII character indicated by A			*						
@@ -158,10 +165,12 @@ NextLineCG:
 
 ;********************************************************
 ;*LCD_CharGen8						*		
-;*
-;*
-;*
-;*
+;*							*
+;*Registers affected: None				*
+;*							*
+;*Loads in a memory location in X, counts throuh 64 	*
+;*locations using Y and sets the Ascii characters for 	*
+;*them							*
 ;********************************************************
 
 LCD_CharGen8:
@@ -191,9 +200,10 @@ NextLineCG8:
 	RTS
 ;********************************************************
 ;*LCD_Addr						*
-;*
-;*
-;*
+;*							*
+;*Registers affected: None				*
+;*							*
+;*Reads in a location in A and sets the cursor position	*
 ;********************************************************
 LCD_Addr:
 	PSHA			;save accumulator
@@ -205,9 +215,10 @@ LCD_Addr:
 
 ;********************************************************
 ;*LCD_Blink						*
-;*
-;*
-;*
+;*							*
+;*Registers affected: none				*
+;*							*
+;*Display on, cursor on, Blink on			*
 ;********************************************************
 LCD_Blink:
 	PSHA			;Saves accumulator
@@ -219,11 +230,43 @@ LCD_Blink:
 	RTS
 
 ;********************************************************
-;*LCD_String
+;*LCD_NoBlink
 ;*
+;*Registers affescted: None
 ;*
-;*
-;*
+;*Display on, Cursor on, Blink off
+;********************************************************
+LCD_NoBlink:
+	PSHA
+
+	LDAA	#%00001110
+	JSR	LCD_Ctrl
+
+	PULA
+	RTS
+;********************************************************
+;*LCD_CursOff						*
+;*							*
+;*Registers affected: none				*
+;*							*
+;*Display on, cursor off				*
+;********************************************************
+LCD_CursOff:
+  PSHA
+  
+  LDAA  #%00001100
+  JSR   LCD_Ctrl
+  
+  PULA
+  RTS
+
+;********************************************************
+;*LCD_String						*
+;*							*
+;*Registers affected: none				*
+;*							*
+;*Loads in a constant string location in X and writes 	*
+;*it at location A					*
 ;********************************************************
 LCD_String:
 	PSHA
@@ -236,5 +279,36 @@ next_LCDChar:
 	BRA	next_LCDChar
 null_Done:
 	PULX
+	PULA
+	RTS
+;********************************************************
+;*LCD_Home						*
+;*							*
+;*Registers affected: None				*
+;*							*
+;*Sets cusor location to home				*
+;********************************************************
+LCD_Home:
+	PSHA
+
+	LDAA	#%00000010
+	JSR	LCD_Ctrl
+
+	PULA
+	RTS
+
+;********************************************************
+;*LCD_Clear						*
+;*							*
+;*Registers affected: None				*
+;*							*
+;*Clears the LCD display				*
+;********************************************************
+LCD_Clear
+	PSHA
+
+	LDAA	#%00000001
+	JSR	LCD_Ctrl
+
 	PULA
 	RTS

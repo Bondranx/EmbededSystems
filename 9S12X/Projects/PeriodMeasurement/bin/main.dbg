@@ -16309,6 +16309,7 @@ mNVFSEC_KEYEN:                           equ        mNVFSEC_KEYEN1
 		TempCondBCD: ds.w 1
     FirstTwoASCII: ds.w 1
     SecondTwoASCII: ds.w 1
+    Null: ds.b 1
 ;********************************************************************
 ;*		Code Section												*
 ;********************************************************************
@@ -16321,6 +16322,8 @@ Main:
        JSR    LCD_Init
        JSR    SetPT7
        JSR    TimInit1us
+       MOVB   #0,Null
+       JSR    LCD_CursOff
 FlagLoop:       
        BRCLR  TFLG1,%10000000,*
        BSET   TFLG1,#%10000000
@@ -16329,12 +16332,15 @@ FlagLoop:
        SUBD   TempCond
        STY    TempCond
        JSR    SevSeg_Top4
-       PSHD
-       LDAA   #1
+       PSHA
+       LDAA   #0
+       JSR    LCD_Addr
+       PULA
        LDX    #FirstLine
        JSR    LCD_String
-       LDD    #TempCond
+       
        JSR    Hex2BCD
+       JSR    SevSeg_Low4
        STD    TempCondBCD
        JSR    Hex2Asc2
        STD    FirstTwoASCII
@@ -16342,12 +16348,21 @@ FlagLoop:
        EXG    B,A
        JSR    Hex2Asc2
        STD    SecondTwoASCII
+       PSHA
        LDAA   #64
+       JSR    LCD_Addr
+       PULA
        LDX    #FirstTwoASCII
        JSR    LCD_String
-       LDX    #SecondTwoASCII
+       PSHA
+       LDAA   #69
+       JSR    LCD_Addr
+       PULA
+       LDX    #ThirdLine
        JSR    LCD_String
-       PULD
+       
+       
+
        BRA    FlagLoop
 
 
@@ -16365,7 +16380,8 @@ FlagLoop:
 ;*		Constants													*
 ;********************************************************************
 		ORG			ROM_C000Start	;second block of ROM
-		FirstLine:    dc.b "Period=:",0
+		FirstLine:    dc.b "Period=",0
+		ThirdLine:    dc.b "us",0
 		
 ;*******************************************************************
 ;*		Look-Up Tables												*
@@ -16407,7 +16423,7 @@ FlagLoop:
 ;************************************************************************ 
 
 ;******************************************
-;*
+;*LCD_Init                                *
 ;*
 ;*
 ;******************************************
@@ -16602,6 +16618,19 @@ LCD_Blink:
 	
 	PULA			;Restore accumulator
 	RTS
+
+;********************************************************
+;*LCD_CursOff
+;*
+;********************************************************
+LCD_CursOff:
+  PSHA
+  
+  LDAA  #%00001100
+  JSR   LCD_Ctrl
+  
+  PULA
+  RTS
 
 ;********************************************************
 ;*LCD_String

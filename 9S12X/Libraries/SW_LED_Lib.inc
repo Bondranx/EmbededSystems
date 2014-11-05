@@ -110,11 +110,11 @@ SwCk:
 	PSHB
 Loop0:
 	LDAA	PT1AD1		;Loads accumulator A with current state of switches and LEDs
-	ANDA	#%11100000	;Masks the LEDs to be off
+	ANDA	#%00011111	;Masks the LEDs to be off
 	LDX     #26666   	;initializes a 10ms timer loop
         DBNE  	X,*		;loops through X for 10ms
 	LDAB	PT1AD1		;Loads accumulator B with updated state of switches and LEDs
-	ANDB	#%11100000	;Masks LEDs to be off	
+	ANDB	#%00011111	;Masks LEDs to be off	
 	CBA			;Compares accumulator A and accumulator B to determine if switch state has changed
 	BNE	Loop0		;Brances to start of routine if switch state is not the same
 	PULB

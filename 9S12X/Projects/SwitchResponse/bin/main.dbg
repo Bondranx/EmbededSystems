@@ -16305,8 +16305,8 @@ mNVFSEC_KEYEN:                           equ        mNVFSEC_KEYEN1
 ;*		Variables													*
 ;********************************************************************
 		ORG			RAMStart		;Address $2000
-		SwCond: ds.b 1
-
+		Var1: ds.b 1
+    TempState: ds.b 1
 
 ;********************************************************************
 ;*		Code Section												*
@@ -16316,73 +16316,59 @@ Entry:
 		LDS			#RAMEnd+1		;initialize the stack pointer
 
 Main:
-       JSR  SW_LED_Init
-       JSR  LCD_Init
-       JSR LCD_CursOff
-SwitchCK:
-       JSR  SwCk
-       CMPA SwCond
-       BEQ SwitchCK
-       STAA SwCond
-       BRSET  SwCond,#%00010000,Up
-       BRSET  SwCond,#%00000100,Lower
-       BRSET  SwCond,#%00000001,Mid
-       BRCLR  SwCond,%00000001,SwitchCK
-       BRCLR  SwCond,%00000100,SwitchCK
-       BRCLR  SwCond,%00010000,SwitchCK
-       BRA    SwitchCK
-Up:
-       JSR  LCD_Init
-       JSR  LCD_CursOff
-       LDX  #Flower
-       JSR  LCD_CharGen8
-       LDX  #FirstLine
-       JSR  LCD_String
-       LDAA #64
-       JSR  LCD_Addr
-       LDX  #SecondLine
-       JSR  LCD_String
-       LDAA  #$F
-       EXG A,B
-SwChkDnLoop:
-       LDAA #30
-       JSR  LCD_Addr
-       EXG  B,A
-       PSHA
-       JSR  Hex2Asc1
-       JSR  LCD_Char
-       BRA SwitchCK
-Lower: 
-       PULA       
-       EXG  A,B
-       DECB
-       CMPB #$FF
-       BEQ  HitZero
-       BRA  SwChkDnLoop
-Mid:    
-       LDAA  #0
-CharLoop:
-       PSHA
-       LDAA  #95
-       JSR   LCD_Addr
-       PULA
-       JSR   LCD_Char
-       INCA
-       JSR   Timer2s
-       CMPA  #7
-       BLS   CharLoop
-       BRA  SwitchCK
-HitZero:
-       LDAB #$F 
-       BRA  SwChkDnLoop
+           LDAA   #0
+           STAA   Var1
+           JSR    SW_LED_Init
+           JSR    SevSeg_Init
+SwitchCk:
+           JSR    Timer2s
+           JSR    GrnLEDon
+           JSR    ChkLeftSw
+           BCC    RedOff
+           JSR    RedLEDon
+           BRA    RedOn
+RedOff:    JSR    RedLEDoff
+RedOn:     JSR    Timer2s
+           JSR    GrnLEDoff
+           JSR    SwCk
+           CMPA   TempState
+           BEQ    SwitchCk
+           STAA   TempState
+           BRSET  TempState,#%00000001,Mid
+           BRSET  TempState,#%00000010,Right
+           BRCLR  TempState,#%00000001,MidSkip
+           BRCLR  TempState,#%00000010,RightSkip
+           BRA    SwitchCk
+Mid:       BRSET  PT1AD1,#%01000000,YelOff
+           JSR    YelLEDon
+           BRA    MidSkip
+Right:     PSHA
+           PSHB
+           LDAA   Var1
+           LDAB   #4
+           INCA
+           STAA   Var1
+           CMPA   #9
+           BGT    Reset
+           JSR    SevSeg_Char
+           BRA    RightSkip
+Reset:     LDAA   #0
+           STAA   Var1
+           JSR    SevSeg_Char     
+           BRA    RightSkip
+     
+YelOff:    JSR    YelLEDoff
+RightSkip: PULB
+           PULA
+MidSkip:   BRA    SwitchCk
 
 
 Timer2s:
            LDAB   #89
-Timloop:   LDY    #5925
+Timloop:   LDY    #1000
            DBNE   Y,*
            DBNE   B,Timloop
-           RTS
+           RTS              
 
 ;********************************************************************
 ;*		Subroutines													*
@@ -16398,81 +16384,9 @@ Timloop:   LDY    #5925
 ;*		Constants													*
 ;********************************************************************
 		ORG			ROM_C000Start	;second block of ROM
-		FirstLine:    dc.b "Interactive LCD",0
-		SecondLine:   dc.b "-By Brandon Foote",0
-		
-		Flower: dc.b  %00010001
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00010001
-		        
-		        dc.b  %00010001
-		        dc.b  %00001010
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00001010
-		        dc.b  %00010001
-		        
-		        dc.b  %00010001
-		        dc.b  %00001010
-		        dc.b  %00001010
-		        dc.b  %00000100
-		        dc.b  %00000100
-		        dc.b  %00001010
-		        dc.b  %00001010
-		        dc.b  %00010001
-		        
-		        dc.b  %00010101
-		        dc.b  %00001010
-		        dc.b  %00001010
-		        dc.b  %00010101
-		        dc.b  %00010101
-		        dc.b  %00001010
-		        dc.b  %00001010
-		        dc.b  %00010101
-            
-		        dc.b  %00010101
-		        dc.b  %00001010
-		        dc.b  %00001010
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00001010
-		        dc.b  %00001010
-		        dc.b  %00010101
-            
-		        dc.b  %00011111
-		        dc.b  %00001110
-		        dc.b  %00001110
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00001110
-		        dc.b  %00001110
-		        dc.b  %00011111
-            
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00001110
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00001110
-		        dc.b  %00011111
-		        dc.b  %00011111
-            
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00011111
-		        dc.b  %00011111
-;*******************************************************************
+
+
+;********************************************************************
 ;*		Look-Up Tables												*
 ;********************************************************************
 
@@ -16487,261 +16401,7 @@ Timloop:   LDY    #5925
 ;********************************************************************
 
 		;INCLUDE "Your_Lib.inc"
-		INCLUDE LCD_Lib.inc
-;************************************************************************ 
-;* HC12 Library: LCD_Lib.inc 						* 
-;* Processor: MC9S12XDP512						* 
-;* Xtal Speed: 16 MHz 							* 
-;* Author: Brandon Foote 						* 
-;* Date: October 14th, 2014 						* 
-;* 							`		* 
-;* Contains: LCD_Init 							* 
-;* LCD_Ctrl 								* 
-;* LCD_Busy 								* 
-;* LCD_Char 								* 
-;* LCD_Addr 								* 
-;* LCD_Blink 								* 
-;* LCD_NoBlink 								* 
-;* LCD_CursOff 								* 
-;* LCD_Clear								* 
-;* LCD_Home 								* 
-;* LCD_String 								* 
-;* LCD_CharGen 								* 
-;* LCD_CharGen8 							* 
-;* 									* 
-;************************************************************************ 
-
-;******************************************
-;*LCD_Init                                *
-;*
-;*
-;******************************************
-LCD_Init: 
- 	PSHD 				;save accumulator 
- 	CLR 	PTH 			;ready to initialize 
- 	MOVB 	#%11111111,DDRH 	;setup Port H to write to LCD
-	CLR 	PORTK 			;/WRITE low, enable low, RS low 
- 	MOVB 	#%00000111,DDRK 	;now make them outputs
-	LDD 	#$FFFF 			;setup a 49.15 ms countdown 
-NotYet1: 
-	LBRN 	* 			;[3] 
- 	DBNE 	D,NotYet1 		;[3] decrement, loop 
-
-	MOVB	#%00111000,PTH	
-	BSET	PORTK,%00000001		
-	BCLR	PORTK,%00000111
-
-	LDD	#11000
-	DBNE	D,*
-
-	BSET	PORTK,%00000001		
-	BCLR	PORTK,%00000111
-
-	LDD	#267
-	DBNE	D,*
-
-	BSET	PORTK,%00000001		
-	BCLR	PORTK,%00000111
-
-	LDAA	#%00001110		;Display on, cursor on, blinking off
-	JSR	LCD_Ctrl
-	LDAA	#%00000110		;increment cursor mode, no shift
-	JSR	LCD_Ctrl
-	LDAA	#%00000001		;Cursor to home
-	JSR	LCD_Ctrl
-	PULD
-	RTS
-
-;****************************************************************** 
-;* LCD_Busy 							  * 
-;*Regs affected: CCR (Carry) 					  *  
-;*Reads busy flag at b7, returns Carry to reflect Busy 		  *  
-;****************************************************************** 
- 
-LCD_Busy: 
-	CLR 	DDRH 			;make inputs to read from LCD 
- 	BSET 	PORTK,%00000011 	;Read high, enable high 
- 	BCLR 	PORTK,%00000111 	;Read low, enable low (and RS, too) 
- 	BRCLR 	PTH,%10000000,NotBusy 	;check busy flag, found in b7
-	SEC
-	BRA 	LeaveBusy
-NotBusy:
-	CLC
-LeaveBusy:
-	BSET	DDRH,#%11111111
-	RTS
-	
-	
-;****************************************************************** 
-;*LCD_Ctrl 							  *  
-;*Regs affected: None 						  *  
-;*sends command received in Accumulator A to LCD 		  * 
-;*This routine relies on LCD_Busy, which returns a Carry 	  * 
-;****************************************************************** 
-LCD_Ctrl: 
- 	JSR 	LCD_Busy 		;wait until the LCD controller is free 
- 	BCS 	LCD_Ctrl 		;-- as reported in Carry 
-	
-	STAA	PTH			;Put the command on the bus
-	;MOVB	#%00000000,PORTK
-	BSET	PORTK,%00000001		
-	BCLR	PORTK,%00000111
-
-	RTS
-;****************************************
-;*LCD_Char				*
-;*					*
-;*					*
-;*					*
-;****************************************
-
-LCD_Char
-	JSR 	LCD_Busy 		;wait until the LCD controller is free 
- 	BCS 	LCD_Char 		;-- as reported in Carry 
-	
-	STAA	PTH			;Put the command on the bus
-	;MOVB	#%00000100,PORTK
-	BSET	PORTK,%00000101		
-	BCLR	PORTK,%00000111
-
-	RTS
-
-;********************************************************
-;*LCD_CharGen						*
-;*Regs affected: none					*
-;*Expects X to point to a table of eight line-by line	*
-;*custom character generation bytes, to be placed in 	*
-;*ASCII character indicated by A			*						
-;********************************************************
-
-LCD_CharGen:
-	PSHA				;Save Accumulators
-	PSHX
-	PSHY
-	
-	LDY	#8			;For Countdown
-	
-	ANDA	#%00000111		;In case someone sent an invalid ASCII character
-					;Multiply by eight to locate desired address
-	LSLA
-	LSLA
-	LSLA
-
-	ORAA	#%01000000		;instruction for CGRAM address mode as desired
-	JSR	LCD_Ctrl
-	
-NextLineCG:
-	LDAA	0,X			;Get character line definition
-	ANDA	#%00111111		;in case invalid data has been entered
-	JSR	LCD_Char		;reuse the routine to stuff CGRAM
-	INX				;Next Line definition
-	DEY				;countdown
-	BNE	NextLineCG
-
-	LDAA	#%10000000		;back to DDRAM, at home position
-	JSR	LCD_Ctrl
-
-	PULY
-	PULX
-	PULA				;Restore accumulator
-	RTS		
-
-;********************************************************
-;*LCD_CharGen8						*		
-;*
-;*
-;*
-;*
-;********************************************************
-
-LCD_CharGen8:
-	PSHA				;Save accumlators
-	PSHX
-	PSHY
-	
-	LDY	#64			;For Countdown
-	
-	LDAA	#%01000000		;instruction for CGRAM address mode, ASCII S
-	JSR	LCD_Ctrl
-	
-NextLineCG8:
-	LDAA	0,X			;Get character line definition
-	ANDA	#%00111111		;in case invalid data has been entered
-	JSR	LCD_Char		;reuse this routine to stuff CGRAM
-	INX				;next line definition
-	DEY				;countdown
-	BNE	NextLineCG8
-	
-	LDAA	#%10000000		;back to DDRAM at home position
-	JSR	LCD_Ctrl
-	
-	PULY
-	PULX
-	PULA				;restore accumulator
-	RTS
-;********************************************************
-;*LCD_Addr						*
-;*
-;*
-;*
-;********************************************************
-LCD_Addr:
-	PSHA			;save accumulator
-	ORAA	#%10000000	;makes command into "Set DDRAM address
-	JSR	LCD_Ctrl	;Send instruction
-	
-	PULA			;restore accumulator
-	RTS
-
-;********************************************************
-;*LCD_Blink						*
-;*
-;*
-;*
-;********************************************************
-LCD_Blink:
-	PSHA			;Saves accumulator
-
-	LDAA	#%00001111	;Display on, cursor on, blink on
-	JSR	LCD_Ctrl	;send instruction
-	
-	PULA			;Restore accumulator
-	RTS
-
-;********************************************************
-;*LCD_CursOff
-;*
-;********************************************************
-LCD_CursOff:
-  PSHA
-  
-  LDAA  #%00001100
-  JSR   LCD_Ctrl
-  
-  PULA
-  RTS
-
-;********************************************************
-;*LCD_String
-;*
-;*
-;*
-;*
-;********************************************************
-LCD_String:
-	PSHA
-	PSHX
-next_LCDChar:
-	LDAA	0,X
-	BEQ	null_Done	;on null character exit
-	INX
-	JSR	LCD_Char
-	BRA	next_LCDChar
-null_Done:
-	PULX
-	PULA
-	RTS
-	  INCLUDE Misc_Lib.inc
+		INCLUDE 'Misc_Lib.inc'
 ;************************************************************************ 
 ;*HC12 Program:Generally useful library components                      * 
 ;*Processor: MC9S12XDP512                                               * 
@@ -16754,7 +16414,8 @@ null_Done:
 ;* Timer initializations, delays, and interval management               * 
 ;*Contains:                                                             * 
 ;* Hex2BCD: converts numeric values to Binary Coded Decimal             * 
-;*                                                                      * 
+;* Hex2Asc1								* 
+;* Hex2Asc2                                                             * 
 ;************************************************************************ 
 
 
@@ -16805,11 +16466,14 @@ Hex2BCD:
           PULX
           RTS
           
-;************************************
-;*A single hex digit arrives in A   *
-;*converted to ASCII returned in A  *
-;*No other registers changed        *
-;************************************
+;************************************************************************
+;*Hex2Asc1								*
+;*									*
+;*Registers Affected: A							*
+;*									*
+;*A single hex digit arrives in A converted to ASCII returned in A  	*
+;*No other registers changed        					*
+;************************************************************************
 
 Hex2Asc1:
 		CMPA	#$0F
@@ -16824,11 +16488,13 @@ NotAlpha:
 		ORAA	#%00110000
 LeaveHex2Asc1:
 		RTS
-;***********
-;*hex byte arrives in A
-;*Two ascii characters are returned in D
-;*
-;************
+;************************************************************************
+;*Hex2Asc2								*
+;*									*
+;*Registers Affected: D							*
+;*									*
+;*hex byte arrives in A, two ascii characters are returned in D		*
+;************************************************************************
 Hex2Asc2:
 		PSHA
 		ANDA	#%00001111
@@ -16842,26 +16508,13 @@ Hex2Asc2:
 		JSR	Hex2Asc1
 		RTS
 
-;******************
-;
-;
-;
-;******************
-AsciiToHex:
-Loop:
-	CMPA	#'0'
-	BLO	Loop
-	CMPA	#'9'
-	BHI	Loop
-	SUBA	#48
-	RTS
-
-;*******************************************
-;* 
-;*
-;*
-;*
-;*******************************************
+;************************************************************************
+;*ToLower 								*
+;*									*
+;*Registers Affected: A							*
+;*									*
+;*Changes a ASCII character from uppercase to lowercase			*
+;************************************************************************
 ToLower:
 		CMPA	#'A'
 		BLO	ExitToLower
@@ -16871,11 +16524,13 @@ ToLower:
 ExitToLower:	
 		RTS	
 
-;**********
-;*
-;*
-;*
-;**********
+;************************************************************************
+;*ToUpper								*
+;*									*
+;*Registers Affected: A							*
+;*									*
+;*Converts a lowercase ASCII character to Uppercase			*
+;************************************************************************
 
 ToUpper:	
 		CMPA	#'a'
@@ -16930,11 +16585,11 @@ TimInit1us:
 	RTS			
 
 ;************************************************
-;*Delay10ms
-;*
-;*Registers affected: none
-;*
-;*
+;*Delay10ms					*
+;*						*
+;*Registers affected: none			*
+;*						*
+;*Sets a delay timer for 10ms			*
 ;************************************************
 Delay10ms:
 	PSHD				;Store for later
@@ -16950,11 +16605,11 @@ Delay10ms:
 	PULD				;Restores old value for D
 	RTS
 ;************************************************
-;*Delay1ms
-;*
-;*Registers affected: none
-;*
-;*
+;*Delay1ms					*
+;*						*
+;*Registers affected: none			*
+;*						*
+;*Sets a delay timer for 1ms			*	
 ;************************************************
 Delay1ms:
 	PSHD				;Store for later
@@ -16970,11 +16625,13 @@ Delay1ms:
 	PULD				;Restores old value for D
 	RTS
 
-;****
-;*
-;*
-;*
-;****
+;********************************************************
+;*Delay1us						*
+;*							*
+;*Registers Affected: none				*
+;*							*
+;*Sets a delay timer for 1 microsecond			*
+;********************************************************
 Delay1us:
 	PSHD				;Store for later
 
@@ -16989,13 +16646,13 @@ Delay1us:
 	PULD				;Restores old value for D
 	RTS
 
-;************************************************
-;*DelayXms
-;*
-;*Registers affected: none
-;*
-;*
-;************************************************
+;********************************************************
+;*DelayXms						*
+;*							*
+;*Registers affected: none				*
+;*							*
+;*Sets a delay timer for a user defined number of ms	*
+;********************************************************
 DelayXms:
 	PSHX
 	
@@ -17012,7 +16669,7 @@ LABEL:	JSR	Delay1ms
 ;*Must follow a TimeInit8us initialization, 8us/tick		*
 ;*This is a blocking routine					*
 ;*The number of milliseconds is brought in the A register	*
-;*PT0 toggles after each delay
+;*PT0 toggles after each delay					*
 ;****************************************************************
 DelayAms:
 	PSHD				;Store for later
@@ -17083,13 +16740,13 @@ IntX:
 	PULD
 	RTS
 
-;***********************************************
-;*SetPT7
-;*
-;*
-;*
-;*
-;***********************************************
+;************************************************
+;*SetPT7					*
+;*						*
+;*Registers affected: None			*
+;*						*
+;*Sets PT7 for use as an input capture		*
+;************************************************
 SetPT7:
 	
 	BCLR	TIOS,%10000000		;Clears most signifigant bit ensiring input capture for IC7
@@ -17097,7 +16754,314 @@ SetPT7:
 	BSET	TCTL3,%01000000		;Sets bit 6 to 1
 
 	RTS
-	  INCLUDE SW_LED_Lib.inc
+		INCLUDE 'SevSeg_Lib.inc'
+;****************************************************************** 
+;* Title: Seven Segment Controller Library 			  * 
+;* Processor: MC9S12XDP512 					  * 
+;* Xtal Speed: 16 MHz 						  * 
+;* Author: Brandon Foote						  * 
+;* Date: Now 							  * 
+;* 							 	  * 
+;* Contains: SevSeg_Init 					  * 
+;* SevSeg_Char 							  * 
+;* SevSeg_dChar 						  * 
+;* SevSeg_BlChar 						  * 
+;* SevSeg_BlAll 						  * 
+;* SevSeg_Two 							  * 
+;* SevSeg_Top4 							  * 
+;* SevSeg_Low4 							  * 
+;* SevSeg_Eight 						  * 
+;* SevSeg_Cust 							  * 
+;* 								  * 
+;****************************************************************** 
+
+;****************************************************************** 
+;* SevSeg_Init 							  * 
+;* 								  * 
+;*Regs affected: none 						  * 
+;* 								  * 
+;*Sets up Port A for the Seven Segment Controller as control, 	  * 
+;*Sets up Port B for the Seven Segment Controller as data 	  * 
+;* *only b1 and b0 of Port A are used 				  * 
+;* *clears all eight digits 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Init: 
+  	BSET 	PORTA,%00000011 	;preset A0:1 to HIGH 
+ 		MOVB 	#%11111111,PORTB 	;preset all PORTB HIGH 
+
+ 		BSET 	DDRA,%00000011 		;make A0:1 outputs 
+ 		MOVB 	#%11111111,DDRB 	;make all PORTB outputs
+		JSR 	SevSeg_BlAll 
+ 		RTS
+
+
+;****************************************************************** 
+;* SevSeg_Char 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts a hex character in Accumulator A and 		  * 
+;* a location (0 to 7) in Accumulator B and places the character  * 
+;* 								  * 
+;* The routine expects the user to know the LED limits, 	  * 
+;* and assumes that SevSeg_Init has been run already. 		  * 
+;* 								  * 
+;****************************************************************** 
+SevSeg_Char: 	PSHA 
+ 		PSHB 
+
+ 		ANDB 	#%00000111 		;clean up address 
+ 		ORAB 	#%01011000 		;add control: hex, decode, no SD, Bnk A 
+ 		ANDA 	#%00001111 		;clear upper nibble 
+ 		ORAA 	#%10000000 		;no decimal point 
+
+ 		STAB 	PORTB 			;instruction ready 
+ 		MOVB 	#%00000010,PORTA 	;/mode high, write low 
+ 		MOVB 	#%00000011,PORTA 	;/write back to high 
+
+ 		STAA 	PORTB 			;data ready 
+ 		MOVB 	#%00000000,PORTA 	;mode and /write low 
+ 		MOVB 	#%00000011,PORTA 	;mode and /write back to high 
+
+ 		PULB 
+ 		PULA 
+ 		RTS 
+
+;****************************************************************** 
+;* SevSeg_dChar 						  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts a hex character in Accumulator A and 		  * 
+;* a location (0 to 7) in Accumulator B and places the character  * 
+;* followed by a decimal point 					  * 
+;* 								  * 
+;* The routine expects the user to know the LED limits, 	  * 
+;* and assumes that SevSeg_Init has been run already. 		  * 
+;* 								  * 
+;****************************************************************** 
+SevSeg_dChar:	PSHA 
+ 		PSHB 
+
+ 		ANDB 	#%00000111 		;clean up address 
+ 		ORAB 	#%01011000 		;add control: hex, decode, no SD, Bnk A 
+ 		ANDA 	#%00001111 		;clear upper nibble  
+
+ 		STAB 	PORTB 			;instruction ready 
+ 		MOVB 	#%00000010,PORTA 	;/mode high, write low 
+ 		MOVB 	#%00000011,PORTA 	;/write back to high 
+
+ 		STAA 	PORTB 			;data ready 
+ 		MOVB 	#%00000000,PORTA 	;mode and /write low 
+ 		MOVB 	#%00000011,PORTA 	;mode and /write back to high 
+
+ 		PULB 
+ 		PULA 
+ 		RTS 
+
+
+;****************************************************************** 
+;* SevSeg_BlChar 						  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts a location (0 to 7) in Accumulator B and blanks 	  * 
+;* that location. 						  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_BlChar:	PSHA 
+ 		PSHB 
+
+ 		ANDB 	#%00000111 		;clean up address 
+ 		ORAB 	#%01111000 		;add control: hex, decode, no SD, Bnk A 
+		LDAA 	#%10000000		;all segments blank  
+ 
+
+ 		STAB 	PORTB 			;instruction ready 
+ 		MOVB 	#%00000010,PORTA 	;/mode high, write low 
+ 		MOVB 	#%00000011,PORTA 	;/write back to high 
+
+ 		STAA 	PORTB 			;data ready 
+ 		MOVB 	#%00000000,PORTA 	;mode and /write low 
+ 		MOVB 	#%00000011,PORTA 	;mode and /write back to high 
+
+ 		PULB 
+ 		PULA 
+ 		RTS 
+
+
+;****************************************************************** 
+;* SevSeg_BlAll 						  * 
+;* 								  * 
+;* Regs affected: none  					  * 
+;* 								  * 
+;* Blanks all eight digits. 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_BlAll:
+		PSHA 
+ 		PSHB
+           	LDAA #%10000000
+           	LDAB #00
+nextBl:    	JSR SevSeg_BlChar
+           	INCB 
+           	CMPB #8
+           	BNE     nextBl
+           	PULB
+		PULa
+		RTS
+
+;****************************************************************** 
+;* SevSeg_Two 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts two hex nibbles in Accumulator A and 		  * 
+;* writes them to two locations starting as specified in Acc B    * 
+;* if Acc B points to digit 7, the second char should be digit 0  * 
+;* 								  * 
+;* Relies on SevSeg_Char 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Two:	
+
+    PSHA 
+ 		PSHB
+		PSHA
+		LSRA
+		LSRA
+		LSRA
+		LSRA
+
+		JSR SevSeg_Char	
+		
+		INCB
+		PULA
+		
+		JSR SevSeg_Char
+		PULA
+		PULB
+
+		RTS
+
+;****************************************************************** 
+;* SevSeg_Top4 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts four hex nibbles in Accumulator D and 		  * 
+;* writes them to locations 0 to 3 (upper red LED bar) 		  * 
+;* 								  * 
+;* Relies on SevSeg_Two, SevSeg_Char 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Top4:
+		PSHD
+		PSHD		
+		LDAB #$00
+		JSR SevSeg_Two
+		PULD
+		TBA
+		LDAB #$02	
+		JSR SevSeg_Two
+		PULD
+		RTS
+
+;****************************************************************** 
+;* SevSeg_Low4 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts four hex nibbles in Accumulator D and 		  * 
+;* writes them to locations 4 to 7 (lower yellow LED bar) 	  * 
+;* Relies on SevSeg_Two, SevSeg_Char 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Low4:
+		PSHD
+		PSHD		
+		LDAB #$04
+		JSR SevSeg_Two
+		PULD
+		TBA
+		LDAB #$06	
+		JSR SevSeg_Two
+		
+		PULD
+
+		RTS
+		
+
+;****************************************************************** 
+;* SevSeg_Eight 						  * 
+;* 								  * 
+;*Regs affected: none 						  * 
+;* 								  * 
+;*Receives a pointer in the X-Register to an 8-byte memory array  * 
+;*containing the appropriate 8 hex nibbles as the lower 4 bits    * 
+;*of each byte, and displays them in order.          		  * 
+;* 								  * 
+;* The memory location must be filled in the Main routine. 	  * 
+;* 								  * 
+;* Relies on SevSeg_Char 					  * 
+;* 								  * 
+;****************************************************************** 
+
+SevSeg_Eight:
+		PSHD
+
+		LDAB #$00
+		
+SevSegLoop:	LDAA B,X
+		JSR SevSeg_Char
+		INCB
+		CMPB #08
+		BNE SevSegLoop
+		
+		PULD
+		
+		RTS	
+		
+		
+;****************************************************************** 
+;* SevSeg_Cust 							  * 
+;* 								  * 
+;* Regs affected: none 						  * 
+;* 								  * 
+;* Accepts custom character specs in Accumulator A and a   	  * 
+;* location (0 to 7) in Accumulator B and places the character.   * 
+;* 								  * 
+;* The routine expects the user to know the LED segments. 	  * 
+;* 								  * 
+;****************************************************************** 
+		
+SevSeg_Cust:
+		PSHA 
+ 		PSHB 
+
+ 		ANDB 	#%00000111 		;clean up address 
+ 		ORAB 	#%01111000 		;add control: hex, decode, no SD, Bnk A   
+
+ 		STAB 	PORTB 			;instruction ready 
+ 		MOVB 	#%00000010,PORTA 	;/mode high, write low 
+ 		MOVB 	#%00000011,PORTA 	;/write back to high 
+
+ 		STAA 	PORTB 			;data ready 
+ 		MOVB 	#%00000000,PORTA 	;mode and /write low 
+ 		MOVB 	#%00000011,PORTA 	;mode and /write back to high 
+
+ 		PULB 
+ 		PULA 
+ 		RTS 
+		
+		INCLUDE 'SW_LED_Lib.inc'
 ;************************************************************************ 
 ;* HC12 Library: Switches and LEDs Library Components 			* 
 ;* Processor: MC9S12XDP512 						* 
@@ -17210,11 +17174,11 @@ SwCk:
 	PSHB
 Loop0:
 	LDAA	PT1AD1		;Loads accumulator A with current state of switches and LEDs
-	ANDA	#%11100000	;Masks the LEDs to be off
+	ANDA	#%00011111	;Masks the LEDs to be off
 	LDX     #26666   	;initializes a 10ms timer loop
         DBNE  	X,*		;loops through X for 10ms
 	LDAB	PT1AD1		;Loads accumulator B with updated state of switches and LEDs
-	ANDB	#%11100000	;Masks LEDs to be off	
+	ANDB	#%00011111	;Masks LEDs to be off	
 	CBA			;Compares accumulator A and accumulator B to determine if switch state has changed
 	BNE	Loop0		;Brances to start of routine if switch state is not the same
 	PULB

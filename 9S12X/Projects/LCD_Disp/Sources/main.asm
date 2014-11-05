@@ -36,9 +36,24 @@ Entry:
 		LDS			#RAMEnd+1		;initialize the stack pointer
 
 Main:
-       
        JSR  SW_LED_Init
        JSR  LCD_Init
+       JSR LCD_CursOff
+SwitchCK:
+       JSR  SwCk
+       CMPA SwCond
+       BEQ SwitchCK
+       STAA SwCond
+       BRSET  SwCond,#%00010000,Up
+       BRSET  SwCond,#%00000100,Lower
+       BRSET  SwCond,#%00000001,Mid
+       BRCLR  SwCond,%00000001,SwitchCK
+       BRCLR  SwCond,%00000100,SwitchCK
+       BRCLR  SwCond,%00010000,SwitchCK
+       BRA    SwitchCK
+Up:
+       JSR  LCD_Init
+       JSR  LCD_CursOff
        LDX  #Flower
        JSR  LCD_CharGen8
        LDX  #FirstLine
@@ -56,29 +71,38 @@ SwChkDnLoop:
        PSHA
        JSR  Hex2Asc1
        JSR  LCD_Char
-SwitchCK:
-       JSR  SwCk
-       CMPA SwCond
-       BEQ SwitchCK
-       STAA SwCond
-       BRCLR  SwCond,%00000100,SwitchCK
-       BRSET  SwCond,#%00000001,Mid
-       BRCLR  SwCond,#%00000001,SwitchCK
-       PULA 
+       BRA SwitchCK
+Lower: 
+       PULA       
        EXG  A,B
        DECB
        CMPB #$FF
        BEQ  HitZero
-Mid:   
-       BRA SwChkDnLoop
-       
-       
+       BRA  SwChkDnLoop
+Mid:    
+       LDAA  #0
+CharLoop:
+       PSHA
+       LDAA  #95
+       JSR   LCD_Addr
+       PULA
+       JSR   LCD_Char
+       INCA
+       JSR   Timer2s
+       CMPA  #7
+       BLS   CharLoop
+       BRA  SwitchCK
 HitZero:
        LDAB #$F 
        BRA  SwChkDnLoop
 
 
-
+Timer2s:
+           LDAB   #89
+Timloop:   LDY    #5925
+           DBNE   Y,*
+           DBNE   B,Timloop
+           RTS
 
 ;********************************************************************
 ;*		Subroutines													*
@@ -97,77 +121,77 @@ HitZero:
 		FirstLine:    dc.b "Interactive LCD",0
 		SecondLine:   dc.b "-By Brandon Foote",0
 		
-		Flower: dc.b  %00000000
+		Flower: dc.b  %00010001
 		        dc.b  %00000000
 		        dc.b  %00000000
 		        dc.b  %00000000
 		        dc.b  %00000000
 		        dc.b  %00000000
-		        dc.b  %00000100
-		        dc.b  %00000100
+		        dc.b  %00000000
+		        dc.b  %00010001
 		        
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00001000
-		        dc.b  %00001000
-		        dc.b  %00001000
-		        dc.b  %00001000
-		        
-		        dc.b  %00000000
-		        dc.b  %00000100
-		        dc.b  %00001010
-		        dc.b  %00000100
-		        dc.b  %00001110
-		        dc.b  %00000100
-		        dc.b  %00000100
-		        dc.b  %00000100
-		        
-		        dc.b  %00001010
 		        dc.b  %00010001
 		        dc.b  %00001010
+		        dc.b  %00000000
+		        dc.b  %00000000
+		        dc.b  %00000000
+		        dc.b  %00000000
+		        dc.b  %00001010
+		        dc.b  %00010001
+		        
+		        dc.b  %00010001
+		        dc.b  %00001010
+		        dc.b  %00001010
 		        dc.b  %00000100
+		        dc.b  %00000100
+		        dc.b  %00001010
+		        dc.b  %00001010
+		        dc.b  %00010001
+		        
 		        dc.b  %00010101
-		        dc.b  %00001110
-		        dc.b  %00000100
-		        dc.b  %00000100
+		        dc.b  %00001010
+		        dc.b  %00001010
+		        dc.b  %00010101
+		        dc.b  %00010101
+		        dc.b  %00001010
+		        dc.b  %00001010
+		        dc.b  %00010101
             
-            dc.b  %00001010
-		        dc.b  %00010001
-		        dc.b  %00001010
-		        dc.b  %00000100
 		        dc.b  %00010101
-		        dc.b  %00001110
-		        dc.b  %00000111
-		        dc.b  %00000100
+		        dc.b  %00001010
+		        dc.b  %00001010
+		        dc.b  %00011111
+		        dc.b  %00011111
+		        dc.b  %00001010
+		        dc.b  %00001010
+		        dc.b  %00010101
             
-            dc.b  %00001110
-		        dc.b  %00010001
-		        dc.b  %00001010
-		        dc.b  %00000100
-		        dc.b  %00010101
+		        dc.b  %00011111
+		        dc.b  %00001110
 		        dc.b  %00001110
 		        dc.b  %00011111
-		        dc.b  %00000100
+		        dc.b  %00011111
+		        dc.b  %00001110
+		        dc.b  %00001110
+		        dc.b  %00011111
             
-            dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00000000
-		        dc.b  %00011100
-		        dc.b  %00000100
+		        dc.b  %00011111
+		        dc.b  %00011111
+		        dc.b  %00001110
+		        dc.b  %00011111
+		        dc.b  %00011111
+		        dc.b  %00001110
+		        dc.b  %00011111
+		        dc.b  %00011111
             
-            dc.b  %00000000
-            dc.b  %00000000
-            dc.b  %00001110
-            dc.b  %00010001
-            dc.b  %00001010
-            dc.b  %00010101
-            dc.b  %00001110
-            dc.b  %00000100
+		        dc.b  %00011111
+		        dc.b  %00011111
+		        dc.b  %00011111
+		        dc.b  %00011111
+		        dc.b  %00011111
+		        dc.b  %00011111
+		        dc.b  %00011111
+		        dc.b  %00011111
 ;*******************************************************************
 ;*		Look-Up Tables												*
 ;********************************************************************

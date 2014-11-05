@@ -10,7 +10,8 @@
 ;* Timer initializations, delays, and interval management               * 
 ;*Contains:                                                             * 
 ;* Hex2BCD: converts numeric values to Binary Coded Decimal             * 
-;*                                                                      * 
+;* Hex2Asc1								* 
+;* Hex2Asc2                                                             * 
 ;************************************************************************ 
 
 
@@ -61,11 +62,14 @@ Hex2BCD:
           PULX
           RTS
           
-;************************************
-;*A single hex digit arrives in A   *
-;*converted to ASCII returned in A  *
-;*No other registers changed        *
-;************************************
+;************************************************************************
+;*Hex2Asc1								*
+;*									*
+;*Registers Affected: A							*
+;*									*
+;*A single hex digit arrives in A converted to ASCII returned in A  	*
+;*No other registers changed        					*
+;************************************************************************
 
 Hex2Asc1:
 		CMPA	#$0F
@@ -80,11 +84,13 @@ NotAlpha:
 		ORAA	#%00110000
 LeaveHex2Asc1:
 		RTS
-;***********
-;*hex byte arrives in A
-;*Two ascii characters are returned in D
-;*
-;************
+;************************************************************************
+;*Hex2Asc2								*
+;*									*
+;*Registers Affected: D							*
+;*									*
+;*hex byte arrives in A, two ascii characters are returned in D		*
+;************************************************************************
 Hex2Asc2:
 		PSHA
 		ANDA	#%00001111
@@ -98,26 +104,13 @@ Hex2Asc2:
 		JSR	Hex2Asc1
 		RTS
 
-;******************
-;
-;
-;
-;******************
-AsciiToHex:
-Loop:
-	CMPA	#'0'
-	BLO	Loop
-	CMPA	#'9'
-	BHI	Loop
-	SUBA	#48
-	RTS
-
-;*******************************************
-;* 
-;*
-;*
-;*
-;*******************************************
+;************************************************************************
+;*ToLower 								*
+;*									*
+;*Registers Affected: A							*
+;*									*
+;*Changes a ASCII character from uppercase to lowercase			*
+;************************************************************************
 ToLower:
 		CMPA	#'A'
 		BLO	ExitToLower
@@ -127,11 +120,13 @@ ToLower:
 ExitToLower:	
 		RTS	
 
-;**********
-;*
-;*
-;*
-;**********
+;************************************************************************
+;*ToUpper								*
+;*									*
+;*Registers Affected: A							*
+;*									*
+;*Converts a lowercase ASCII character to Uppercase			*
+;************************************************************************
 
 ToUpper:	
 		CMPA	#'a'
@@ -186,11 +181,11 @@ TimInit1us:
 	RTS			
 
 ;************************************************
-;*Delay10ms
-;*
-;*Registers affected: none
-;*
-;*
+;*Delay10ms					*
+;*						*
+;*Registers affected: none			*
+;*						*
+;*Sets a delay timer for 10ms			*
 ;************************************************
 Delay10ms:
 	PSHD				;Store for later
@@ -206,11 +201,11 @@ Delay10ms:
 	PULD				;Restores old value for D
 	RTS
 ;************************************************
-;*Delay1ms
-;*
-;*Registers affected: none
-;*
-;*
+;*Delay1ms					*
+;*						*
+;*Registers affected: none			*
+;*						*
+;*Sets a delay timer for 1ms			*	
 ;************************************************
 Delay1ms:
 	PSHD				;Store for later
@@ -226,11 +221,13 @@ Delay1ms:
 	PULD				;Restores old value for D
 	RTS
 
-;****
-;*
-;*
-;*
-;****
+;********************************************************
+;*Delay1us						*
+;*							*
+;*Registers Affected: none				*
+;*							*
+;*Sets a delay timer for 1 microsecond			*
+;********************************************************
 Delay1us:
 	PSHD				;Store for later
 
@@ -245,13 +242,13 @@ Delay1us:
 	PULD				;Restores old value for D
 	RTS
 
-;************************************************
-;*DelayXms
-;*
-;*Registers affected: none
-;*
-;*
-;************************************************
+;********************************************************
+;*DelayXms						*
+;*							*
+;*Registers affected: none				*
+;*							*
+;*Sets a delay timer for a user defined number of ms	*
+;********************************************************
 DelayXms:
 	PSHX
 	
@@ -268,7 +265,7 @@ LABEL:	JSR	Delay1ms
 ;*Must follow a TimeInit8us initialization, 8us/tick		*
 ;*This is a blocking routine					*
 ;*The number of milliseconds is brought in the A register	*
-;*PT0 toggles after each delay
+;*PT0 toggles after each delay					*
 ;****************************************************************
 DelayAms:
 	PSHD				;Store for later
@@ -339,13 +336,13 @@ IntX:
 	PULD
 	RTS
 
-;***********************************************
-;*SetPT7
-;*
-;*
-;*
-;*
-;***********************************************
+;************************************************
+;*SetPT7					*
+;*						*
+;*Registers affected: None			*
+;*						*
+;*Sets PT7 for use as an input capture		*
+;************************************************
 SetPT7:
 	
 	BCLR	TIOS,%10000000		;Clears most signifigant bit ensiring input capture for IC7
