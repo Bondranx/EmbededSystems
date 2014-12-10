@@ -71,6 +71,8 @@ Right:     PSHA
            CMPA   #9
            BGT    Reset
            JSR    SevSeg_Char
+           PULB
+           PULA
            BRA    RightSkip
 Reset:     LDAA   #0
            STAA   Var1
@@ -78,8 +80,7 @@ Reset:     LDAA   #0
            BRA    RightSkip
      
 YelOff:    JSR    YelLEDoff
-RightSkip: PULB
-           PULA
+RightSkip: 
 MidSkip:   BRA    SwitchCk
 
 

@@ -119,7 +119,6 @@ Loop0:
 	BNE	Loop0		;Brances to start of routine if switch state is not the same
 	PULB
 	PULX
-	LDAA	PT1AD1		;Loads accumulator A with new switch state
 	RTS
 ;********************************************************
 ;*ChkLeftSw						*

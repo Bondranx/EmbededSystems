@@ -301,14 +301,14 @@ IntXInitB:
 	PSHX
 	
 	BSET	TSCR1,%10000000		;enable timer module 0
-	ANDB	#%00000111		;idiot-proofing
-	STAB	TSCR2			;prescaler set to Bus/(2^B)
+	ANDB	#%00000111		    ;idiot-proofing
+	STAB	TSCR2			        ;prescaler set to Bus/(2^B)
 	BSET	TIOS,%00000001		;set IOS0 for output compare
 	BSET	TCTL2,%00000001		;toggle mode for PT0
 	BCLR	TCTL2,%00000010		;(continued)
 	TFR 	X,D			;transfers interval in register X into register D
 	ADDD 	TCNT			;Sets new event timer value, based on what used to be in X
-	STD	TC0			;set the new target time
+	STD	  TC0			;set the new target time
 	BSET	TFLG1,#%00000001	;clears flag by setting bit to 1
 	BRCLR	TFLG1,#%00000001,*	;first interval
 		
@@ -330,6 +330,7 @@ IntX:
 	TFR	X,D			;transfers interval in register X nto Register D
 	ADDD	TC0			;set new event timer based on interval
 	STD	TC0			;set the new target time
+	BRCLR TFLG1,#%00000001,*
 	BSET	TFLG1,#%00000001	;creat the flag by setting bit to 1
 	
 	PULX

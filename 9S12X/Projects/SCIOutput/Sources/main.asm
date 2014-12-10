@@ -58,9 +58,9 @@ Char2:
             CMPA  #'9'
             BHI Char2
             JSR SCI0_TxByte
-            JSR AsciiToHex
+            ;JSR AsciiToHex
             EXG A,B
-            JSR AsciiToHex
+            ;JSR AsciiToHex
             LSLA
             LSLA
             ABA

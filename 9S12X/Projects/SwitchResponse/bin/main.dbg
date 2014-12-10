@@ -16351,6 +16351,8 @@ Right:     PSHA
            CMPA   #9
            BGT    Reset
            JSR    SevSeg_Char
+           PULB
+           PULA
            BRA    RightSkip
 Reset:     LDAA   #0
            STAA   Var1
@@ -16358,8 +16360,7 @@ Reset:     LDAA   #0
            BRA    RightSkip
      
 YelOff:    JSR    YelLEDoff
-RightSkip: PULB
-           PULA
+RightSkip: 
 MidSkip:   BRA    SwitchCk
 
 
@@ -17183,7 +17184,6 @@ Loop0:
 	BNE	Loop0		;Brances to start of routine if switch state is not the same
 	PULB
 	PULX
-	LDAA	PT1AD1		;Loads accumulator A with new switch state
 	RTS
 ;********************************************************
 ;*ChkLeftSw						*
